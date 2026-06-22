@@ -36,3 +36,48 @@ D/FlutterJNI(32396): Sending viewport metrics to the engine.
 D/FlutterJNI(32396): Sending viewport metrics to the engine.
 D/FlutterJNI(32396): Sending viewport metrics to the engine.
 D/FlutterJNI(32396): Sending viewport metrics to the engine.
+I/FlutterActivityAndFragmentDelegate( 5725): If you are attempting to set --enable-dart-profiling via Intent extras to launch a Flutter component outside of using the Flutter CLI, note that support for setting engine flags on Android via Intent will soon be dropped; see https://github.com/flutter/flutter/issues/180686 for more information on this breaking change. To migrate, set --enable-dart-profiling or any other flags specified via Intent extras on the command line instead or see https://github.com/flutter/flutter/blob/main/docs/engine/Flutter-Android-Engine-Flags.md for alternative methods.
+D/FlutterJNI( 5725): Beginning load of flutter...
+D/FlutterJNI( 5725): flutter (null) was loaded normally!
+I/flutter ( 5725): [IMPORTANT:flutter/shell/platform/android/android_context_gl_impeller.cc(104)] Using the Impeller rendering backend (OpenGLES).
+I/flutter ( 5725): The Dart VM service is listening on http://127.0.0.1:42791/1UDpBg3R5U8=/
+D/FlutterGeolocator( 5725): Attaching Geolocator to activity
+D/FlutterRenderer( 5725): Width is zero. 0,0
+D/FlutterGeolocator( 5725): Creating service.
+D/FlutterGeolocator( 5725): Binding to location service.
+D/FlutterRenderer( 5725): Width is zero. 0,0
+D/FlutterJNI( 5725): Sending viewport metrics to the engine.
+D/FlutterGeolocator( 5725): Geolocator foreground service connected
+D/FlutterGeolocator( 5725): Initializing Geolocator services
+D/FlutterGeolocator( 5725): Flutter engine connected. Connected engine count 1
+D/FlutterJNI( 5725): Sending viewport metrics to the engine.
+I/FlutterActivityAndFragmentDelegate( 6231): If you are attempting to set --enable-dart-profiling via Intent extras to launch a Flutter component outside of using the Flutter CLI, note that support for setting engine flags on Android via Intent will soon be dropped; see https://github.com/flutter/flutter/issues/180686 for more information on this breaking change. To migrate, set --enable-dart-profiling or any other flags specified via Intent extras on the command line instead or see https://github.com/flutter/flutter/blob/main/docs/engine/Flutter-Android-Engine-Flags.md for alternative methods.
+D/FlutterJNI( 6231): Beginning load of flutter...
+D/FlutterJNI( 6231): flutter (null) was loaded normally!
+I/flutter ( 6231): [IMPORTANT:flutter/shell/platform/android/android_context_gl_impeller.cc(104)] Using the Impeller rendering backend (OpenGLES).
+I/flutter ( 6231): The Dart VM service is listening on http://127.0.0.1:33345/Q0yTMOf9dMA=/
+D/FlutterGeolocator( 6231): Attaching Geolocator to activity
+D/FlutterRenderer( 6231): Width is zero. 0,0
+D/FlutterGeolocator( 6231): Creating service.
+D/FlutterGeolocator( 6231): Binding to location service.
+D/FlutterRenderer( 6231): Width is zero. 0,0
+D/FlutterJNI( 6231): Sending viewport metrics to the engine.
+D/FlutterGeolocator( 6231): Geolocator foreground service connected
+D/FlutterGeolocator( 6231): Initializing Geolocator services
+D/FlutterGeolocator( 6231): Flutter engine connected. Connected engine count 1
+D/FlutterJNI( 6231): Sending viewport metrics to the engine.
+I/FlutterActivityAndFragmentDelegate( 7685): If you are attempting to set --enable-dart-profiling via Intent extras to launch a Flutter component outside of using the Flutter CLI, note that support for setting engine flags on Android via Intent will soon be dropped; see https://github.com/flutter/flutter/issues/180686 for more information on this breaking change. To migrate, set --enable-dart-profiling or any other flags specified via Intent extras on the command line instead or see https://github.com/flutter/flutter/blob/main/docs/engine/Flutter-Android-Engine-Flags.md for alternative methods.
+D/FlutterJNI( 7685): Beginning load of flutter...
+D/FlutterJNI( 7685): flutter (null) was loaded normally!
+I/flutter ( 7685): [IMPORTANT:flutter/shell/platform/android/android_context_gl_impeller.cc(104)] Using the Impeller rendering backend (OpenGLES).
+I/flutter ( 7685): The Dart VM service is listening on http://127.0.0.1:36349/egjF06AJrCU=/
+D/FlutterGeolocator( 7685): Attaching Geolocator to activity
+D/FlutterRenderer( 7685): Width is zero. 0,0
+D/FlutterGeolocator( 7685): Creating service.
+D/FlutterGeolocator( 7685): Binding to location service.
+D/FlutterRenderer( 7685): Width is zero. 0,0
+D/FlutterJNI( 7685): Sending viewport metrics to the engine.
+D/FlutterGeolocator( 7685): Geolocator foreground service connected
+D/FlutterGeolocator( 7685): Initializing Geolocator services
+D/FlutterGeolocator( 7685): Flutter engine connected. Connected engine count 1
+D/FlutterJNI( 7685): Sending viewport metrics to the engine.
