@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Driver Fatigue Detection System
 
 > Professional software-first driver safety application with mobile and API support.
@@ -100,3 +101,7 @@ pip install -r requirements-ml.txt
 - Add user authentication with WSO2 Identity Server
 - Add test automation in `tests/`
 - Add deployment configuration in `docs/`
+=======
+# driver-fatigue-detection
+Real-time driver drowsiness detection using EfficientNet-B0 | Computer Vision | PyTorch
+>>>>>>> 4dfdf83c91c4e96cc26f2f58f3eda4dcc1c20eb9
