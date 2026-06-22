@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+pillow
+python-multipart
+pydantic
+sqlalchemy
+alembic
+python-jose[cryptography]
+passlib[bcrypt]
+python-dotenv
+pytest
+
+# Optional ML dependencies
+# See requirements-ml.txt for inference-specific packages

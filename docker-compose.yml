@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=sqlite:///./backend.db
+      - SECRET_KEY=replace-with-secure-secret
+    command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000

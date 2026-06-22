@@ -1,0 +1,38 @@
+Showing sdk gphone16k x86 64 logs:
+D/FlutterJNI(30608): Beginning load of flutter...
+D/FlutterJNI(30608): flutter (null) was loaded normally!
+I/flutter (30608): [IMPORTANT:flutter/shell/platform/android/android_context_gl_impeller.cc(104)] Using the Impeller rendering backend (OpenGLES).
+I/flutter (30608): The Dart VM service is listening on http://127.0.0.1:36143/Do2vkA3QX-Q=/
+D/FlutterGeolocator(30608): Attaching Geolocator to activity
+D/FlutterRenderer(30608): Width is zero. 0,0
+D/FlutterGeolocator(30608): Creating service.
+D/FlutterGeolocator(30608): Binding to location service.
+D/FlutterRenderer(30608): Width is zero. 0,0
+D/FlutterJNI(30608): Sending viewport metrics to the engine.
+D/FlutterGeolocator(30608): Geolocator foreground service connected
+D/FlutterGeolocator(30608): Initializing Geolocator services
+D/FlutterGeolocator(30608): Flutter engine connected. Connected engine count 1
+D/FlutterJNI(30608): Sending viewport metrics to the engine.
+D/FlutterJNI(32396): Beginning load of flutter...
+D/FlutterJNI(32396): flutter (null) was loaded normally!
+I/flutter (32396): [IMPORTANT:flutter/shell/platform/android/android_context_gl_impeller.cc(104)] Using the Impeller rendering backend (OpenGLES).
+I/flutter (32396): The Dart VM service is listening on http://127.0.0.1:42661/QGsZu43igRc=/
+D/FlutterGeolocator(32396): Attaching Geolocator to activity
+D/FlutterRenderer(32396): Width is zero. 0,0
+D/FlutterRenderer(32396): Width is zero. 0,0
+D/FlutterJNI(32396): Sending viewport metrics to the engine.
+D/FlutterGeolocator(32396): Creating service.
+D/FlutterGeolocator(32396): Binding to location service.
+D/FlutterGeolocator(32396): Geolocator foreground service connected
+D/FlutterGeolocator(32396): Initializing Geolocator services
+D/FlutterGeolocator(32396): Flutter engine connected. Connected engine count 1
+D/FlutterJNI(32396): Sending viewport metrics to the engine.
+D/FlutterJNI(32396): Sending viewport metrics to the engine.
+D/FlutterJNI(32396): Sending viewport metrics to the engine.
+D/FlutterJNI(32396): Sending viewport metrics to the engine.
+D/FlutterJNI(32396): Sending viewport metrics to the engine.
+D/FlutterJNI(32396): Sending viewport metrics to the engine.
+D/FlutterJNI(32396): Sending viewport metrics to the engine.
+D/FlutterJNI(32396): Sending viewport metrics to the engine.
+D/FlutterJNI(32396): Sending viewport metrics to the engine.
+D/FlutterJNI(32396): Sending viewport metrics to the engine.

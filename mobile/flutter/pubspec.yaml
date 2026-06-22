@@ -1,0 +1,24 @@
+name: nexdrive
+description: NexDrive driver fatigue detection mobile app.
+publish_to: 'none'
+version: 0.1.0+1
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  camera: any
+  google_mlkit_face_detection: any
+  firebase_core: any
+  cloud_firestore: any
+  http: any
+  vibration: any
+  geolocator: any
+  flutter_local_notifications: any
+  url_launcher: any
+  shared_preferences: any
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true

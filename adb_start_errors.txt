@@ -1,0 +1,7 @@
+FINDSTR: Cannot open ;
+FINDSTR: Cannot open type
+FINDSTR: Cannot open ;
+FINDSTR: Cannot open echo
+FINDSTR: Cannot open ---
+FINDSTR: Cannot open ;
+FINDSTR: Cannot open type

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "129200550238",
+    "project_id": "nexdrive-7af8e",
+    "storage_bucket": "nexdrive-7af8e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:129200550238:android:2eb1266aa473d7571a1fcf",
+        "android_client_info": {
+          "package_name": "com.nexdrive.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwXiHUVihLimoQ3iJhpSAaGomMZ9O23Jg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

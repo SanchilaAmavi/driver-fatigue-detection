@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+venv/
+env/
+.venv/
+
+# Data and model artifacts
+data/
+models/*.pth
+models/*.pt
+*.zip
+*.csv
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# React Native
+mobile/react_native/node_modules/
+mobile/react_native/android/
+mobile/react_native/ios/
+
+# Flutter
+mobile/flutter/.dart_tool/
+mobile/flutter/.packages
+mobile/flutter/build/
