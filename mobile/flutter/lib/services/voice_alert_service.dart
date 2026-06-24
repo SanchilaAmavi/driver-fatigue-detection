@@ -87,4 +87,10 @@ class VoiceAlertService {
   static void dispose() {
     _tts.stop();
   }
+  /// General-purpose TTS — used by voice chat for non-alert messages
+static Future<void> speakRaw(String text) async {
+  if (!_initialized) await initialize();
+  if (_isSpeaking) await _tts.stop();
+  await _tts.speak(text);
+}
 }

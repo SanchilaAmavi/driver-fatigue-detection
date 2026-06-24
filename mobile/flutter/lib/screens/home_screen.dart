@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/voice_fab.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  bool _backendOk   = false;
-  bool _checking    = true;
+  bool _backendOk = false;
+  bool _checking  = true;
   late AnimationController _pulse;
 
   @override
@@ -32,122 +34,145 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _checkBackend() async {
     setState(() => _checking = true);
     final ok = await ApiService.healthCheck();
-    setState(() { _backendOk = ok; _checking = false; });
+    setState(() {
+      _backendOk = ok;
+      _checking  = false;
+    });
+  }
+
+  // ── Bottom nav ──────────────────────────────────────────────
+  Widget _buildBottomNav(BuildContext context, int current) {
+    return BottomNavigationBar(
+      backgroundColor: const Color(0xFF0A0E1A),
+      selectedItemColor: Colors.blueAccent,
+      unselectedItemColor: Colors.white38,
+      currentIndex: current,
+      type: BottomNavigationBarType.fixed,
+      onTap: (i) {
+        const routes = ['/home', '/camera', '/voice', '/dashboard'];
+        if (i != current) Navigator.pushNamed(context, routes[i]);
+      },
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home),            label: 'Home'),
+        BottomNavigationBarItem(icon: Icon(Icons.remove_red_eye),  label: 'Monitor'),
+        BottomNavigationBarItem(icon: Icon(Icons.mic),             label: 'Assistant'),
+        BottomNavigationBarItem(icon: Icon(Icons.dashboard),       label: 'Dashboard'),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E1A),
+      floatingActionButton: const VoiceFAB(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: _buildBottomNav(context, 0),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ──
+              // ── Header ────────────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('NexDrive',
-                          style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 1.2)),
-                      Text('Driver Safety Platform',
-                          style: TextStyle(
-                              fontSize: 14, color: Colors.blue.shade300)),
+                      const Text(
+                        'NexDrive',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      Text(
+                        'Driver Safety Platform',
+                        style: TextStyle(
+                            fontSize: 14, color: Colors.blue.shade300),
+                      ),
                     ],
                   ),
+
                   // Status indicator
                   GestureDetector(
                     onTap: _checkBackend,
                     child: AnimatedBuilder(
                       animation: _pulse,
-                      builder: (context, child) => Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: (_checking
-                                  ? Colors.orange
-                                  : _backendOk
-                                      ? Colors.green
-                                      : Colors.red)
-                              .withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: _checking
-                                ? Colors.orange
-                                : _backendOk
-                                    ? Colors.green
-                                    : Colors.red,
-                            width: 1,
+                      builder: (context, child) {
+                        final color = _checking
+                            ? Colors.orange
+                            : _backendOk
+                                ? Colors.green
+                                : Colors.red;
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: color, width: 1),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: _checking
-                                    ? Colors.orange
-                                    : _backendOk
-                                        ? Colors.green
-                                        : Colors.red,
-                                shape: BoxShape.circle,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _checking
-                                  ? 'Checking'
-                                  : _backendOk
-                                      ? 'Online'
-                                      : 'Offline',
-                              style: TextStyle(
-                                color: _checking
-                                    ? Colors.orange
+                              const SizedBox(width: 6),
+                              Text(
+                                _checking
+                                    ? 'Checking'
                                     : _backendOk
-                                        ? Colors.green
-                                        : Colors.red,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                                        ? 'Online'
+                                        : 'Offline',
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 30),
 
-              // ── Main Action Card ──
+              // ── Main Action Card ───────────────────────────
               _buildMainCard(context),
               const SizedBox(height: 20),
 
-              // ── Stats Row ──
+              // ── Stats Row ──────────────────────────────────
               _buildStatsRow(),
               const SizedBox(height: 20),
 
-              // ── Feature Grid ──
-              const Text('Features',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white)),
+              // ── Feature Grid ───────────────────────────────
+              const Text(
+                'Features',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
+              ),
               const SizedBox(height: 12),
               _buildFeatureGrid(context),
               const SizedBox(height: 20),
 
-              // ── Safety Tips ──
+              // ── Safety Tips ────────────────────────────────
               _buildSafetyTips(),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -155,6 +180,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // ── Main card ───────────────────────────────────────────────
   Widget _buildMainCard(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/camera'),
@@ -194,14 +220,18 @@ class _HomeScreenState extends State<HomeScreen>
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Start Monitoring',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold)),
-                    Text('Real-time fatigue detection',
-                        style: TextStyle(
-                            color: Colors.white70, fontSize: 13)),
+                    Text(
+                      'Start Monitoring',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Real-time fatigue detection',
+                      style:
+                          TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
                   ],
                 ),
               ],
@@ -209,11 +239,11 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(height: 20),
             const Row(
               children: [
-                _FeatureTag(icon: Icons.visibility, label: 'Eye Tracking'),
+                _FeatureTag(icon: Icons.visibility,  label: 'Eye Tracking'),
                 SizedBox(width: 8),
-                _FeatureTag(icon: Icons.face, label: 'Yawn Detection'),
+                _FeatureTag(icon: Icons.face,        label: 'Yawn Detection'),
                 SizedBox(width: 8),
-                _FeatureTag(icon: Icons.warning, label: 'Alerts'),
+                _FeatureTag(icon: Icons.warning,     label: 'Alerts'),
               ],
             ),
             const SizedBox(height: 16),
@@ -229,10 +259,12 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   Icon(Icons.play_arrow, color: Color(0xFF1565C0)),
                   SizedBox(width: 6),
-                  Text('Tap to Start',
-                      style: TextStyle(
-                          color: Color(0xFF1565C0),
-                          fontWeight: FontWeight.bold)),
+                  Text(
+                    'Tap to Start',
+                    style: TextStyle(
+                        color: Color(0xFF1565C0),
+                        fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
             ),
@@ -242,26 +274,37 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // ── Stats row ───────────────────────────────────────────────
   Widget _buildStatsRow() {
     return Row(
       children: [
-        _StatCard(title: 'Trips Today', value: '3', icon: Icons.directions_car),
+        _StatCard(
+            title: 'Trips Today',
+            value: '3',
+            icon: Icons.directions_car),
         const SizedBox(width: 12),
-        _StatCard(title: 'Alerts', value: '2', icon: Icons.warning_amber),
+        _StatCard(
+            title: 'Alerts',
+            value: '2',
+            icon: Icons.warning_amber),
         const SizedBox(width: 12),
-        _StatCard(title: 'Safe Score', value: '87%', icon: Icons.shield),
+        _StatCard(
+            title: 'Safe Score',
+            value: '87%',
+            icon: Icons.shield),
       ],
     );
   }
 
+  // ── Feature grid ────────────────────────────────────────────
   Widget _buildFeatureGrid(BuildContext context) {
     final features = [
-      _Feature('Dashboard',    Icons.dashboard,         '/dashboard', const Color(0xFF1A237E)),
-      _Feature('Trip History', Icons.history,            '/dashboard', const Color(0xFF1B5E20)),
-      _Feature('Emergency',    Icons.sos,                '/emergency', const Color(0xFFB71C1C)),
-      _Feature('Break Tips',   Icons.free_breakfast,     '/break',     const Color(0xFFE65100)),
-      _Feature('Fleet Mgmt',   Icons.people,             '/login',     const Color(0xFF4A148C)),
-      _Feature('Settings',     Icons.settings,           '/login',     const Color(0xFF006064)),
+      _Feature('Dashboard',    Icons.dashboard,      '/dashboard', const Color(0xFF1A237E)),
+      _Feature('Trip History', Icons.history,        '/dashboard', const Color(0xFF1B5E20)),
+      _Feature('Emergency',    Icons.sos,            '/emergency', const Color(0xFFB71C1C)),
+      _Feature('Break Tips',   Icons.free_breakfast, '/break',     const Color(0xFFE65100)),
+      _Feature('Fleet Mgmt',   Icons.people,         '/login',     const Color(0xFF4A148C)),
+      _Feature('Settings',     Icons.settings,       '/login',     const Color(0xFF006064)),
     ];
 
     return GridView.builder(
@@ -289,10 +332,12 @@ class _HomeScreenState extends State<HomeScreen>
               children: [
                 Icon(f.icon, color: Colors.white, size: 28),
                 const SizedBox(height: 8),
-                Text(f.label,
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 11),
-                    textAlign: TextAlign.center),
+                Text(
+                  f.label,
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 11),
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           ),
@@ -301,6 +346,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // ── Safety tips ─────────────────────────────────────────────
   Widget _buildSafetyTips() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -316,11 +362,13 @@ class _HomeScreenState extends State<HomeScreen>
             children: [
               Icon(Icons.lightbulb, color: Colors.amber, size: 18),
               SizedBox(width: 8),
-              Text('Safety Tips',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14)),
+              Text(
+                'Safety Tips',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -341,16 +389,19 @@ class _HomeScreenState extends State<HomeScreen>
           const Icon(Icons.check_circle, color: Colors.green, size: 14),
           const SizedBox(width: 8),
           Expanded(
-              child: Text(tip,
-                  style: const TextStyle(
-                      color: Colors.white70, fontSize: 12))),
+            child: Text(
+              tip,
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-// ── Helper widgets ──────────────────────────────────────────
+// ── Helper widgets ───────────────────────────────────────────
+
 class _FeatureTag extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -359,7 +410,8 @@ class _FeatureTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.15),
         borderRadius: BorderRadius.circular(12),
@@ -369,7 +421,8 @@ class _FeatureTag extends StatelessWidget {
           Icon(icon, color: Colors.white70, size: 12),
           const SizedBox(width: 4),
           Text(label,
-              style: const TextStyle(color: Colors.white70, fontSize: 10)),
+              style: const TextStyle(
+                  color: Colors.white70, fontSize: 10)),
         ],
       ),
     );
@@ -391,22 +444,25 @@ class _StatCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF1A1F2E),
           borderRadius: BorderRadius.circular(12),
-          border:
-              Border.all(color: Colors.blue.withOpacity(0.2)),
+          border: Border.all(color: Colors.blue.withOpacity(0.2)),
         ),
         child: Column(
           children: [
             Icon(icon, color: Colors.blue, size: 20),
             const SizedBox(height: 6),
-            Text(value,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold)),
-            Text(title,
-                style: const TextStyle(
-                    color: Colors.white54, fontSize: 10),
-                textAlign: TextAlign.center),
+            Text(
+              value,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
+            ),
+            Text(
+              title,
+              style: const TextStyle(
+                  color: Colors.white54, fontSize: 10),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),

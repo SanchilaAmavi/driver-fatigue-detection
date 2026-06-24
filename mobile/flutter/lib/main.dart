@@ -7,6 +7,8 @@ import 'screens/emergency_contact_screen.dart';
 import 'screens/break_recommendation_screen.dart';
 import 'services/firebase_service.dart';
 import 'services/notification_service.dart';
+import 'screens/voice_assistant_screen.dart';
+import 'screens/full_map_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +50,8 @@ class DriverFatigueApp extends StatelessWidget {
         '/dashboard': (context) => const DashboardScreen(),
         '/login': (context) => const LoginScreen(),
         '/emergency': (context) => const EmergencyContactScreen(),
+        '/voice' : (context) => const VoiceAssistantScreen(),
+        '/map'   : (context) => const FullMapScreen(),
       },
     );
   }

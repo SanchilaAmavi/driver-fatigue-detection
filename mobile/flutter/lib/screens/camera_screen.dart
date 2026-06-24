@@ -16,7 +16,9 @@ import '../services/location_service.dart';
 import '../services/map_service.dart';
 import '../services/notification_service.dart';
 import '../services/voice_alert_service.dart';
+import '../services/voice_chat_service.dart';
 import '../widgets/map_widget.dart';
+import '../widgets/voice_fab.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -60,7 +62,6 @@ class _CameraScreenState extends State<CameraScreen>
 
   // ── Map widget key ────────────────────────────────────────
   final GlobalKey<MapWidgetState> _mapKey = GlobalKey<MapWidgetState>();
-
   // ── Map visibility toggle ─────────────────────────────────
   bool _showMap = true;
 
@@ -100,6 +101,7 @@ class _CameraScreenState extends State<CameraScreen>
     final camera = await Permission.camera.request();
     await Permission.location.request();
     await Permission.notification.request();
+    await Permission.microphone.request(); // needed for voice FAB
     if (!camera.isGranted) {
       setState(() => _status =
           '❌ Camera permission denied.\nSettings → Apps → NexDrive → Permissions → Camera');
@@ -166,6 +168,12 @@ class _CameraScreenState extends State<CameraScreen>
         _fatigueScore = 0.0;
         _alertLevel = 'NORMAL';
       });
+      VoiceChatService.updateState(
+        score: _fatigueScore,
+        level: _alertLevel,
+        alerts: _alertCount,
+        monitoring: _isMonitoring,
+      );
     } else {
       _sessionStart = DateTime.now();
       _alertCount = 0;
@@ -176,6 +184,12 @@ class _CameraScreenState extends State<CameraScreen>
         _isMonitoring = true;
         _status = '🟢 Monitoring active';
       });
+      VoiceChatService.updateState(
+        score: _fatigueScore,
+        level: _alertLevel,
+        alerts: _alertCount,
+        monitoring: _isMonitoring,
+      );
     }
   }
 
@@ -247,8 +261,9 @@ class _CameraScreenState extends State<CameraScreen>
     score += (1.0 - avgEye).clamp(0.0, 1.0) * 50;
     if (yawning)    score += 25;
     if (distracted) score += 15;
-    if (_eyesClosedFrames > 3)
+    if (_eyesClosedFrames > 3) {
       score += (_eyesClosedFrames * 2).clamp(0, 10).toDouble();
+    }
     score = score.clamp(0, 100);
 
     // 7. Level
@@ -277,6 +292,13 @@ class _CameraScreenState extends State<CameraScreen>
             ? '⚠️ $level — ${eyesAlert ? "EYES CLOSED" : yawnAlert ? "YAWNING" : "DISTRACTED"}'
             : '✅ Score: ${score.toStringAsFixed(0)}% | Eyes: ${(avgEye * 100).toStringAsFixed(0)}%';
       });
+
+      VoiceChatService.updateState(
+        score: score,
+        level: level,
+        alerts: _alertCount,
+        monitoring: _isMonitoring,
+      );
     }
 
     // 9. Trigger alerts
@@ -297,6 +319,13 @@ class _CameraScreenState extends State<CameraScreen>
       await NotificationService.showAlertNotification(
           '🚨 Fatigue Alert ($level)', message);
 
+      VoiceChatService.updateState(
+        score: score,
+        level: level,
+        alerts: _alertCount,
+        monitoring: _isMonitoring,
+      );
+
       if (DateTime.now().difference(_lastEmergencySms).inMinutes >= 1) {
         _lastEmergencySms = DateTime.now();
         await _notifyEmergencyContact(message);
@@ -304,7 +333,6 @@ class _CameraScreenState extends State<CameraScreen>
 
       final position = await LocationService.getCurrentPosition();
 
-      // ── Add alert pin to map ──────────────────────────────
       if (position != null) {
         _mapKey.currentState?.addAlertMarker(position, level, message);
       }
@@ -401,7 +429,6 @@ class _CameraScreenState extends State<CameraScreen>
           ],
         ),
         actions: [
-          // Map toggle button
           IconButton(
             icon: Icon(
               _showMap ? Icons.map : Icons.map_outlined,
@@ -422,15 +449,13 @@ class _CameraScreenState extends State<CameraScreen>
                       : Colors.green.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color:
-                        _alertCount > 0 ? Colors.red : Colors.green,
+                    color: _alertCount > 0 ? Colors.red : Colors.green,
                   ),
                 ),
                 child: Text(
                   '$_alertCount alerts',
                   style: TextStyle(
-                    color:
-                        _alertCount > 0 ? Colors.red : Colors.green,
+                    color: _alertCount > 0 ? Colors.red : Colors.green,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
@@ -440,6 +465,27 @@ class _CameraScreenState extends State<CameraScreen>
           ),
         ],
       ),
+      // ── Voice FAB — wired to app actions ──────────────────
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 80), // clear bottom controls
+        child: VoiceFAB(
+          onCommand: (action) {
+            switch (action) {
+              case 'START_MONITORING':
+                if (!_isMonitoring) _toggleMonitoring();
+              case 'STOP_MONITORING':
+                if (_isMonitoring) _toggleMonitoring();
+              case 'OPEN_SOS':
+                Navigator.pushNamed(context, '/emergency');
+              case 'OPEN_DASHBOARD':
+                Navigator.pushNamed(context, '/dashboard');
+              case 'OPEN_MAP':
+                Navigator.pushNamed(context, '/map');
+            }
+          },
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: SafeArea(
         child: Column(
           children: [
@@ -467,7 +513,7 @@ class _CameraScreenState extends State<CameraScreen>
                           child: _buildTopStatusBar(),
                         ),
 
-                        // ── Map widget (bottom-left) ──────────
+                        // Map widget (bottom-left)
                         if (_showMap)
                           Positioned(
                             left: 12,
@@ -494,7 +540,6 @@ class _CameraScreenState extends State<CameraScreen>
                             child: _buildAlertBanner(),
                           ),
 
-                        // Debug panel
                         Positioned(
                           top: 60, right: 10,
                           child: _buildDebugPanel(),
@@ -529,8 +574,7 @@ class _CameraScreenState extends State<CameraScreen>
                   fontSize: 10)),
           Text('😮 Yawn:  $_yawnFrames/$_yawnThreshold',
               style: TextStyle(
-                  color:
-                      _yawnFrames > 0 ? Colors.orange : Colors.white54,
+                  color: _yawnFrames > 0 ? Colors.orange : Colors.white54,
                   fontSize: 10)),
           Text('😵 Head:  $_distractedFrames/$_distractedThreshold',
               style: TextStyle(
@@ -581,8 +625,7 @@ class _CameraScreenState extends State<CameraScreen>
 
   Widget _buildTopStatusBar() {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -599,8 +642,7 @@ class _CameraScreenState extends State<CameraScreen>
             width: 10,
             height: 10,
             decoration: BoxDecoration(
-              color:
-                  _isMonitoring ? Colors.green : Colors.grey,
+              color: _isMonitoring ? Colors.green : Colors.grey,
               shape: BoxShape.circle,
             ),
           ),
@@ -616,8 +658,7 @@ class _CameraScreenState extends State<CameraScreen>
           const Spacer(),
           Text(
             'Score: ${_fatigueScore.toStringAsFixed(0)}%',
-            style:
-                const TextStyle(color: Colors.white70, fontSize: 12),
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],
       ),
@@ -666,16 +707,14 @@ class _CameraScreenState extends State<CameraScreen>
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.75),
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: _alertColor.withOpacity(0.5)),
+        border: Border.all(color: _alertColor.withOpacity(0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
-            mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Fatigue Score',
                   style: TextStyle(
@@ -696,8 +735,7 @@ class _CameraScreenState extends State<CameraScreen>
             child: LinearProgressIndicator(
               value: _fatigueScore / 100,
               backgroundColor: Colors.white12,
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(_alertColor),
+              valueColor: AlwaysStoppedAnimation<Color>(_alertColor),
               minHeight: 6,
             ),
           ),
@@ -720,23 +758,16 @@ class _CameraScreenState extends State<CameraScreen>
             width: double.infinity,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    _isMonitoring ? Colors.red : Colors.green,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: _isMonitoring ? Colors.red : Colors.green,
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              icon: Icon(_isMonitoring
-                  ? Icons.stop
-                  : Icons.play_arrow),
+              icon: Icon(_isMonitoring ? Icons.stop : Icons.play_arrow),
               label: Text(
-                _isMonitoring
-                    ? 'Stop Monitoring'
-                    : 'Start Monitoring',
+                _isMonitoring ? 'Stop Monitoring' : 'Start Monitoring',
                 style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
+                    fontSize: 16, fontWeight: FontWeight.bold),
               ),
               onPressed: _toggleMonitoring,
             ),
@@ -748,17 +779,15 @@ class _CameraScreenState extends State<CameraScreen>
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.orange,
-                    side: const BorderSide(
-                        color: Colors.orange),
+                    side: const BorderSide(color: Colors.orange),
                     shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                   icon: const Icon(Icons.sos, size: 18),
                   label: const Text('SOS',
                       style: TextStyle(fontSize: 13)),
-                  onPressed: () => Navigator.pushNamed(
-                      context, '/emergency'),
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/emergency'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -766,18 +795,15 @@ class _CameraScreenState extends State<CameraScreen>
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.blue,
-                    side:
-                        const BorderSide(color: Colors.blue),
+                    side: const BorderSide(color: Colors.blue),
                     shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10)),
                   ),
-                  icon: const Icon(Icons.dashboard,
-                      size: 18),
+                  icon: const Icon(Icons.dashboard, size: 18),
                   label: const Text('Dashboard',
                       style: TextStyle(fontSize: 13)),
-                  onPressed: () => Navigator.pushNamed(
-                      context, '/dashboard'),
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/dashboard'),
                 ),
               ),
             ],
@@ -787,10 +813,3 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 }
-
- 
- 
-
- 
-       
-  
