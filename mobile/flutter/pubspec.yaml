@@ -32,7 +32,8 @@ dependencies:
   geolocator: ^11.0.0
 
   # Maps
-  google_maps_flutter: ^2.9.0
+  flutter_map: ^7.0.1
+  latlong2: ^0.9.1
 
   # Utils
   url_launcher: ^6.2.4

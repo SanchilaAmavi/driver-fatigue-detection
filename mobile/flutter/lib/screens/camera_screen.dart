@@ -52,9 +52,14 @@ class _CameraScreenState extends State<CameraScreen>
   int _eyesClosedFrames = 0;
   int _yawnFrames = 0;
   int _distractedFrames = 0;
-  static const int _eyesClosedThreshold = 8;
-  static const int _yawnThreshold = 10;
-  static const int _distractedThreshold = 12;
+
+  // ── INSTANT alert thresholds (lowered for fast response) ──
+  static const int _eyesClosedThreshold  = 2;  // ~2 frames ≈ immediate
+  static const int _yawnThreshold        = 4;
+  static const int _distractedThreshold  = 5;
+
+  // ── Cooldown between alerts (seconds) ────────────────────
+  static const int _alertCooldownSeconds = 5;
 
   // ── Blink animation ───────────────────────────────────────
   late AnimationController _blinkController;
@@ -62,7 +67,6 @@ class _CameraScreenState extends State<CameraScreen>
 
   // ── Map widget key ────────────────────────────────────────
   final GlobalKey<MapWidgetState> _mapKey = GlobalKey<MapWidgetState>();
-  // ── Map visibility toggle ─────────────────────────────────
   bool _showMap = true;
 
   Color get _alertColor {
@@ -74,7 +78,6 @@ class _CameraScreenState extends State<CameraScreen>
     }
   }
 
-  // ── Init ──────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
@@ -82,8 +85,7 @@ class _CameraScreenState extends State<CameraScreen>
       vsync: this,
       duration: const Duration(milliseconds: 500),
     )..repeat(reverse: true);
-    _blinkAnim =
-        Tween<double>(begin: 0.1, end: 0.45).animate(_blinkController);
+    _blinkAnim = Tween<double>(begin: 0.1, end: 0.45).animate(_blinkController);
     _initializeCamera();
   }
 
@@ -96,12 +98,11 @@ class _CameraScreenState extends State<CameraScreen>
     super.dispose();
   }
 
-  // ── Permissions ───────────────────────────────────────────
   Future<bool> _requestPermissions() async {
     final camera = await Permission.camera.request();
     await Permission.location.request();
     await Permission.notification.request();
-    await Permission.microphone.request(); // needed for voice FAB
+    await Permission.microphone.request();
     if (!camera.isGranted) {
       setState(() => _status =
           '❌ Camera permission denied.\nSettings → Apps → NexDrive → Permissions → Camera');
@@ -110,7 +111,6 @@ class _CameraScreenState extends State<CameraScreen>
     return true;
   }
 
-  // ── Camera init ───────────────────────────────────────────
   Future<void> _initializeCamera() async {
     setState(() => _status = '🔄 Requesting permissions...');
     if (!await _requestPermissions()) return;
@@ -135,7 +135,7 @@ class _CameraScreenState extends State<CameraScreen>
 
       _cameraController = CameraController(
         front,
-        ResolutionPreset.medium,
+        ResolutionPreset.low, // low = faster frame processing
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.yuv420,
       );
@@ -147,7 +147,6 @@ class _CameraScreenState extends State<CameraScreen>
     }
   }
 
-  // ── Start / Stop ──────────────────────────────────────────
   Future<void> _toggleMonitoring() async {
     if (_cameraController == null ||
         !_cameraController!.value.isInitialized) {
@@ -199,7 +198,6 @@ class _CameraScreenState extends State<CameraScreen>
     _distractedFrames = 0;
   }
 
-  // ── Frame processor ───────────────────────────────────────
   Future<void> _processCameraImage(CameraImage image) async {
     if (_isProcessing || _cameraController == null) return;
     _isProcessing = true;
@@ -228,13 +226,12 @@ class _CameraScreenState extends State<CameraScreen>
     }
   }
 
-  // ── Face handler ──────────────────────────────────────────
   Future<void> _handleFace(Face face) async {
     // 1. Eye openness
     final leftEye  = face.leftEyeOpenProbability  ?? 1.0;
     final rightEye = face.rightEyeOpenProbability ?? 1.0;
     final avgEye   = (leftEye + rightEye) / 2.0;
-    final eyesClosed = avgEye < 0.25;
+    final eyesClosed = avgEye < 0.30; // slightly higher threshold = more sensitive
 
     // 2. Yawn
     final yawning = _detectYawn(face);
@@ -243,14 +240,14 @@ class _CameraScreenState extends State<CameraScreen>
     final headYaw   = face.headEulerAngleY?.abs() ?? 0.0;
     final headPitch = face.headEulerAngleX?.abs() ?? 0.0;
     final headRoll  = face.headEulerAngleZ?.abs() ?? 0.0;
-    final distracted = headYaw > 25 || headRoll > 20 || headPitch > 20;
+    final distracted = headYaw > 20 || headRoll > 15 || headPitch > 15;
 
     // 4. Frame counters
     eyesClosed ? _eyesClosedFrames++ : _eyesClosedFrames = 0;
     yawning    ? _yawnFrames++       : _yawnFrames       = 0;
     distracted ? _distractedFrames++ : _distractedFrames = 0;
 
-    // 5. Alert conditions
+    // 5. Alert conditions (fires at low threshold = fast)
     final eyesAlert = _eyesClosedFrames >= _eyesClosedThreshold;
     final yawnAlert = _yawnFrames       >= _yawnThreshold;
     final headAlert = _distractedFrames >= _distractedThreshold;
@@ -261,8 +258,8 @@ class _CameraScreenState extends State<CameraScreen>
     score += (1.0 - avgEye).clamp(0.0, 1.0) * 50;
     if (yawning)    score += 25;
     if (distracted) score += 15;
-    if (_eyesClosedFrames > 3) {
-      score += (_eyesClosedFrames * 2).clamp(0, 10).toDouble();
+    if (_eyesClosedFrames > 1) {
+      score += (_eyesClosedFrames * 3).clamp(0, 10).toDouble();
     }
     score = score.clamp(0, 100);
 
@@ -277,7 +274,7 @@ class _CameraScreenState extends State<CameraScreen>
     String message;
     if (eyesAlert)       message = '😴 Eyes closed! Wake up — DANGER!';
     else if (yawnAlert)  message = '😮 Yawning detected — Take a break!';
-    else if (headAlert)  message = '😵 Head drooping/distracted — Stay focused!';
+    else if (headAlert)  message = '😵 Head drooping — Stay focused!';
     else if (eyesClosed) message = '⚠️ Eyes closing... ($_eyesClosedFrames/$_eyesClosedThreshold)';
     else if (yawning)    message = '⚠️ Possible yawn... ($_yawnFrames/$_yawnThreshold)';
     else                 message = '✅ Driver alert — Score: ${score.toStringAsFixed(0)}%';
@@ -292,7 +289,6 @@ class _CameraScreenState extends State<CameraScreen>
             ? '⚠️ $level — ${eyesAlert ? "EYES CLOSED" : yawnAlert ? "YAWNING" : "DISTRACTED"}'
             : '✅ Score: ${score.toStringAsFixed(0)}% | Eyes: ${(avgEye * 100).toStringAsFixed(0)}%';
       });
-
       VoiceChatService.updateState(
         score: score,
         level: level,
@@ -301,23 +297,24 @@ class _CameraScreenState extends State<CameraScreen>
       );
     }
 
-    // 9. Trigger alerts
+    // 9. Trigger alerts — short cooldown for fast response
     if (anyAlert &&
-        DateTime.now().difference(_lastAlert).inSeconds > 3) {
+        DateTime.now().difference(_lastAlert).inSeconds > _alertCooldownSeconds) {
       _lastAlert  = DateTime.now();
       _alertCount += 1;
 
-      await AlertService.triggerAlert();
-
-      await VoiceAlertService.speakAlert(
-        eyesAlert: eyesAlert,
-        yawnAlert: yawnAlert,
-        headAlert: headAlert,
-        level: level,
-      );
-
-      await NotificationService.showAlertNotification(
-          '🚨 Fatigue Alert ($level)', message);
+      // Fire alert, TTS, notification in parallel for speed
+      await Future.wait([
+        AlertService.triggerAlert(),
+        VoiceAlertService.speakAlert(
+          eyesAlert: eyesAlert,
+          yawnAlert: yawnAlert,
+          headAlert: headAlert,
+          level: level,
+        ),
+        NotificationService.showAlertNotification(
+            '🚨 Fatigue Alert ($level)', message),
+      ]);
 
       VoiceChatService.updateState(
         score: score,
@@ -328,11 +325,10 @@ class _CameraScreenState extends State<CameraScreen>
 
       if (DateTime.now().difference(_lastEmergencySms).inMinutes >= 1) {
         _lastEmergencySms = DateTime.now();
-        await _notifyEmergencyContact(message);
+        _notifyEmergencyContact(message); // fire-and-forget, don't await
       }
 
       final position = await LocationService.getCurrentPosition();
-
       if (position != null) {
         _mapKey.currentState?.addAlertMarker(position, level, message);
       }
@@ -341,7 +337,7 @@ class _CameraScreenState extends State<CameraScreen>
           ? LocationService.formatPosition(position)
           : 'unknown';
 
-      await FirebaseService.logFatigueEvent({
+      FirebaseService.logFatigueEvent({ // fire-and-forget
         'timestamp'   : DateTime.now().toUtc().toIso8601String(),
         'score'       : score,
         'level'       : level,
@@ -354,7 +350,6 @@ class _CameraScreenState extends State<CameraScreen>
     }
   }
 
-  // ── Yawn detection ────────────────────────────────────────
   bool _detectYawn(Face face) {
     final upperLip   = face.contours[FaceContourType.upperLipTop];
     final lowerLip   = face.contours[FaceContourType.lowerLipBottom];
@@ -390,7 +385,6 @@ class _CameraScreenState extends State<CameraScreen>
   double _dist(Point<num> a, Point<num> b) =>
       sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2));
 
-  // ── Trip save ─────────────────────────────────────────────
   Future<void> _saveTrip() async {
     final duration  = DateTime.now().difference(_sessionStart).inSeconds;
     final safeScore = (100.0 - (_alertCount * 5.0)).clamp(0.0, 100.0);
@@ -403,7 +397,6 @@ class _CameraScreenState extends State<CameraScreen>
     });
   }
 
-  // ── Emergency contact ─────────────────────────────────────
   Future<void> _notifyEmergencyContact(String message) async {
     final ok = await EmergencyContactService.sendSmsAlert(message);
     await NotificationService.showAlertNotification(
@@ -424,8 +417,7 @@ class _CameraScreenState extends State<CameraScreen>
           children: [
             Icon(Icons.remove_red_eye, color: Colors.blue),
             SizedBox(width: 8),
-            Text('Fatigue Monitor',
-                style: TextStyle(color: Colors.white)),
+            Text('Fatigue Monitor', style: TextStyle(color: Colors.white)),
           ],
         ),
         actions: [
@@ -441,8 +433,7 @@ class _CameraScreenState extends State<CameraScreen>
             padding: const EdgeInsets.only(right: 16),
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: _alertCount > 0
                       ? Colors.red.withOpacity(0.3)
@@ -465,9 +456,8 @@ class _CameraScreenState extends State<CameraScreen>
           ),
         ],
       ),
-      // ── Voice FAB — wired to app actions ──────────────────
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 80), // clear bottom controls
+        padding: const EdgeInsets.only(bottom: 80),
         child: VoiceFAB(
           onCommand: (action) {
             switch (action) {
@@ -498,13 +488,11 @@ class _CameraScreenState extends State<CameraScreen>
                       children: [
                         CameraPreview(_cameraController!),
 
-                        // Blinking alert overlay
                         if (_showAlertOverlay)
                           AnimatedBuilder(
                             animation: _blinkAnim,
                             builder: (_, __) => Container(
-                              color: _alertColor
-                                  .withOpacity(_blinkAnim.value),
+                              color: _alertColor.withOpacity(_blinkAnim.value),
                             ),
                           ),
 
@@ -513,7 +501,6 @@ class _CameraScreenState extends State<CameraScreen>
                           child: _buildTopStatusBar(),
                         ),
 
-                        // Map widget (bottom-left)
                         if (_showMap)
                           Positioned(
                             left: 12,
@@ -523,8 +510,8 @@ class _CameraScreenState extends State<CameraScreen>
                               height: 145,
                               child: MapWidget(
                                 key: _mapKey,
-                                onExpand: () => Navigator.pushNamed(
-                                    context, '/map'),
+                                onExpand: () =>
+                                    Navigator.pushNamed(context, '/map'),
                               ),
                             ),
                           ),
@@ -554,8 +541,6 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
-  // ── Sub-widgets ───────────────────────────────────────────
-
   Widget _buildDebugPanel() {
     return Container(
       padding: const EdgeInsets.all(6),
@@ -568,9 +553,7 @@ class _CameraScreenState extends State<CameraScreen>
         children: [
           Text('👁 Closed: $_eyesClosedFrames/$_eyesClosedThreshold',
               style: TextStyle(
-                  color: _eyesClosedFrames > 0
-                      ? Colors.red
-                      : Colors.white54,
+                  color: _eyesClosedFrames > 0 ? Colors.red : Colors.white54,
                   fontSize: 10)),
           Text('😮 Yawn:  $_yawnFrames/$_yawnThreshold',
               style: TextStyle(
@@ -578,9 +561,7 @@ class _CameraScreenState extends State<CameraScreen>
                   fontSize: 10)),
           Text('😵 Head:  $_distractedFrames/$_distractedThreshold',
               style: TextStyle(
-                  color: _distractedFrames > 0
-                      ? Colors.yellow
-                      : Colors.white54,
+                  color: _distractedFrames > 0 ? Colors.yellow : Colors.white54,
                   fontSize: 10)),
         ],
       ),
@@ -600,8 +581,7 @@ class _CameraScreenState extends State<CameraScreen>
             Padding(
               padding: const EdgeInsets.all(20),
               child: Text(_status,
-                  style: const TextStyle(
-                      color: Colors.white70, fontSize: 16),
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
                   textAlign: TextAlign.center),
             ),
             const SizedBox(height: 20),
@@ -628,10 +608,7 @@ class _CameraScreenState extends State<CameraScreen>
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.black.withOpacity(0.8),
-            Colors.transparent
-          ],
+          colors: [Colors.black.withOpacity(0.8), Colors.transparent],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -672,16 +649,13 @@ class _CameraScreenState extends State<CameraScreen>
         color: _alertColor.withOpacity(0.9),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(
-              color: _alertColor.withOpacity(0.5), blurRadius: 15)
+          BoxShadow(color: _alertColor.withOpacity(0.5), blurRadius: 15)
         ],
       ),
       child: Row(
         children: [
           Icon(
-            _alertLevel == 'CRITICAL'
-                ? Icons.dangerous
-                : Icons.warning_amber,
+            _alertLevel == 'CRITICAL' ? Icons.dangerous : Icons.warning_amber,
             color: Colors.white,
             size: 28,
           ),
@@ -717,8 +691,7 @@ class _CameraScreenState extends State<CameraScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Fatigue Score',
-                  style: TextStyle(
-                      color: Colors.white70, fontSize: 12)),
+                  style: TextStyle(color: Colors.white70, fontSize: 12)),
               Text(
                 '${_fatigueScore.toStringAsFixed(0)}%',
                 style: TextStyle(
@@ -741,8 +714,7 @@ class _CameraScreenState extends State<CameraScreen>
           ),
           const SizedBox(height: 8),
           Text(_alertMessage,
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 13)),
+              style: const TextStyle(color: Colors.white, fontSize: 13)),
         ],
       ),
     );
@@ -784,10 +756,8 @@ class _CameraScreenState extends State<CameraScreen>
                         borderRadius: BorderRadius.circular(10)),
                   ),
                   icon: const Icon(Icons.sos, size: 18),
-                  label: const Text('SOS',
-                      style: TextStyle(fontSize: 13)),
-                  onPressed: () =>
-                      Navigator.pushNamed(context, '/emergency'),
+                  label: const Text('SOS', style: TextStyle(fontSize: 13)),
+                  onPressed: () => Navigator.pushNamed(context, '/emergency'),
                 ),
               ),
               const SizedBox(width: 10),
