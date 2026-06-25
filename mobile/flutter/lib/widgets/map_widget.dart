@@ -1,6 +1,6 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 
 class MapWidget extends StatefulWidget {
@@ -8,16 +8,19 @@ class MapWidget extends StatefulWidget {
   const MapWidget({super.key, this.onExpand});
 
   @override
-  State<MapWidget> createState() => MapWidgetState(); // public, not _private
+  State<MapWidget> createState() => MapWidgetState();
 }
 
 class MapWidgetState extends State<MapWidget> {
-  final Completer<GoogleMapController> _controller = Completer();
+  final MapController _mapController = MapController();
+
   static const LatLng _defaultCenter = LatLng(6.9271, 79.8612);
 
   LatLng? _currentPosition;
-  final Set<Marker> _markers = {};
-  int _markerIdCounter = 0;
+  bool    _locationLoaded = false;
+
+  final List<Marker>   _alertMarkers = [];
+  int                  _markerIdCounter = 0;
 
   @override
   void initState() {
@@ -26,42 +29,61 @@ class MapWidgetState extends State<MapWidget> {
   }
 
   Future<void> _getLocation() async {
-    final permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      await Geolocator.requestPermission();
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) setState(() => _locationLoaded = true);
+        return;
+      }
+
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      ).timeout(const Duration(seconds: 10));
+
+      if (!mounted) return;
+
+      final latLng = LatLng(pos.latitude, pos.longitude);
+      setState(() {
+        _currentPosition = latLng;
+        _locationLoaded  = true;
+      });
+
+      _mapController.move(latLng, 15.0);
+    } catch (e) {
+      debugPrint('MapWidget location error: $e');
+      if (mounted) setState(() => _locationLoaded = true);
     }
-
-    final pos = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
-    final latLng = LatLng(pos.latitude, pos.longitude);
-    setState(() => _currentPosition = latLng);
-
-    final ctrl = await _controller.future;
-    ctrl.animateCamera(CameraUpdate.newLatLngZoom(latLng, 15));
   }
 
-  /// Called from CameraScreen when a fatigue alert fires
+  /// Called from CameraScreen when fatigue alert fires
   Future<void> addAlertMarker(
       dynamic position, String level, String message) async {
+    if (!mounted) return;
     final latLng = LatLng(position.latitude, position.longitude);
     final color = switch (level) {
-      'CRITICAL' => BitmapDescriptor.hueRed,
-      'DANGER'   => BitmapDescriptor.hueOrange,
-      'WARNING'  => BitmapDescriptor.hueYellow,
-      _          => BitmapDescriptor.hueGreen,
+      'CRITICAL' => Colors.red,
+      'DANGER'   => Colors.orange,
+      'WARNING'  => Colors.yellow,
+      _          => Colors.green,
     };
 
-    final marker = Marker(
-      markerId: MarkerId('alert_${_markerIdCounter++}'),
-      position: latLng,
-      icon: BitmapDescriptor.defaultMarkerWithHue(color),
-      infoWindow: InfoWindow(title: level, snippet: message),
-    );
-
-    setState(() => _markers.add(marker));
+    setState(() {
+      _alertMarkers.add(
+        Marker(
+          point: latLng,
+          width: 40,
+          height: 40,
+          child: Tooltip(
+            message: '$level: $message',
+            child: Icon(Icons.warning_rounded, color: color, size: 32),
+          ),
+        ),
+      );
+      _markerIdCounter++;
+    });
   }
 
   @override
@@ -70,17 +92,77 @@ class MapWidgetState extends State<MapWidget> {
       borderRadius: BorderRadius.circular(12),
       child: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: _currentPosition ?? _defaultCenter,
-              zoom: 15,
+          // ── Map ─────────────────────────────────────────
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _currentPosition ?? _defaultCenter,
+              initialZoom: 15,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.pinchZoom |
+                       InteractiveFlag.drag,
+              ),
             ),
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
-            markers: Set.from(_markers),
-            onMapCreated: (ctrl) => _controller.complete(ctrl),
+            children: [
+              // OpenStreetMap tile layer — completely free
+              TileLayer(
+                urlTemplate:
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.nexdrive.app',
+                maxZoom: 19,
+              ),
+
+              // Alert markers
+              if (_alertMarkers.isNotEmpty)
+                MarkerLayer(markers: _alertMarkers),
+
+              // Current location marker
+              if (_currentPosition != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _currentPosition!,
+                      width: 50,
+                      height: 50,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent.withOpacity(0.25),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: Colors.blueAccent, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.navigation_rounded,
+                          color: Colors.blueAccent,
+                          size: 26,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
           ),
-          // Expand button (top-right)
+
+          // ── Loading overlay ──────────────────────────────
+          if (!_locationLoaded)
+            Container(
+              color: const Color(0xFF0A0E1A),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                        color: Colors.blueAccent, strokeWidth: 2),
+                    SizedBox(height: 8),
+                    Text('Locating...',
+                        style: TextStyle(
+                            color: Colors.white54, fontSize: 11)),
+                  ],
+                ),
+              ),
+            ),
+
+          // ── Expand button ────────────────────────────────
           if (widget.onExpand != null)
             Positioned(
               top: 6,
@@ -98,6 +180,30 @@ class MapWidgetState extends State<MapWidget> {
                 ),
               ),
             ),
+
+          // ── Re-center button ─────────────────────────────
+          Positioned(
+            bottom: 8,
+            right: 6,
+            child: GestureDetector(
+              onTap: () {
+                if (_currentPosition != null) {
+                  _mapController.move(_currentPosition!, 15.0);
+                } else {
+                  _getLocation();
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.my_location,
+                    color: Colors.white, size: 18),
+              ),
+            ),
+          ),
         ],
       ),
     );
