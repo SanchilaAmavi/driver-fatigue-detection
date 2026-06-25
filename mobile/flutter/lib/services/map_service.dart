@@ -1,9 +1,23 @@
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
+
+class AlertMarkerData {
+  final LatLng position;
+  final String level;
+  final String message;
+  final int id;
+
+  const AlertMarkerData({
+    required this.position,
+    required this.level,
+    required this.message,
+    required this.id,
+  });
+}
 
 class MapService {
-  static final List<LatLng> routePoints = [];
-  static final List<Marker> alertMarkers = [];
+  static final List<LatLng>          routePoints   = [];
+  static final List<AlertMarkerData> alertMarkers  = [];
   static int _alertMarkerCount = 0;
 
   static void addRoutePoint(Position position) {
@@ -14,20 +28,11 @@ class MapService {
       Position position, String alertLevel, String message) {
     _alertMarkerCount++;
     alertMarkers.add(
-      Marker(
-        markerId: MarkerId('alert_$_alertMarkerCount'),
+      AlertMarkerData(
         position: LatLng(position.latitude, position.longitude),
-        icon: BitmapDescriptor.defaultMarkerWithHue(
-          alertLevel == 'CRITICAL'
-              ? BitmapDescriptor.hueRed
-              : alertLevel == 'DANGER'
-                  ? BitmapDescriptor.hueOrange
-                  : BitmapDescriptor.hueYellow,
-        ),
-        infoWindow: InfoWindow(
-          title: '⚠️ $alertLevel',
-          snippet: message,
-        ),
+        level:    alertLevel,
+        message:  message,
+        id:       _alertMarkerCount,
       ),
     );
   }
