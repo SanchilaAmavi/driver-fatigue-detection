@@ -251,8 +251,6 @@ driver-fatigue-detection/
 - [x] Flutter mobile app with voice assistant
 - [x] Emergency SOS + GPS trip tracking
 - [x] Dockerized deployment
-- [ ] WSO2 API Manager gateway integration
-- [ ] WSO2 Identity Server authentication
 - [ ] Expanded test automation suite
 - [ ] Cloud deployment & CI/CD pipeline
 - [ ] On-device (edge) inference optimization
